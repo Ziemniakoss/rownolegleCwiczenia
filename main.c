@@ -46,6 +46,17 @@ double * read_vector_from_file(char * file, int * n){
 	return vector;	
 }
 
+int get_index(pid_t pid, pid_t * array, int n){	
+	for(int i = 0; i < n; i++){
+		if(pid == array[i])
+			return i;
+	}
+	return -1;
+}
+	
+
+//To co robi worker
+
 int main(int argc, char ** argv){
 	if(argc < 3){
 		printf("./programik N plik_z_wektorem\n");
@@ -59,24 +70,49 @@ int main(int argc, char ** argv){
 	}
 	double * vector;
 	int n; //długość wektora
-	double * sums = create_shared_memory(sizeof(double) * amount_of_workers); 
-	pid_t * workers = create_shared_memory(sizeof(pid_t) * amount_of_workers);
-	struct range * ranges = create_shared_memory(sizeof(struct range) * amount_of_workers);
-	//ustawianie wartosc domyslnych sum
+	double * sums; 
+	pid_t * workers; // wszystkie pid workeróœ
+	struct range * ranges; 
+	
+	sums = create_shared_memory(sizeof(double) * amount_of_workers);
 	for(int i = 0; i < amount_of_workers; i++){
 		sums[i] = 0;
 	}
-	//TODO tworzenie workerów i ustawienie czekania na SIGISR1
+	workers = create_shared_memory(sizeof(pid_t) * amount_of_workers);
+	ranges = create_shared_memory(sizeof(struct range) * amount_of_workers);
 	
-	//wczytywanie i ustawieani rangów
+
+	pid_t pid;
+	printf("Tworzenie %d workerów...\n", amount_of_workers);
+	for(int i = 0; i < amount_of_workers; i++){
+		pid = fork();
+		if(pid == 0){
+			//TODO konfiguracja odbior sygnału
+			sleep(20);
+			exit(0);
+		}else if(pid < 0){
+			printf("Błąd przy tworzeniu workera %d\n", i);
+			abort();
+		}else{
+			workers[i] = pid;
+		}
+	}	
+
+	printf("Wczytywanie wektora...\n");
+	//wczytywanie i ustawieani przedziałów
 	vector = read_vector_from_file(argv[2] , &n);
 	//TODO tworzenie przedziałów	
 
 
-
-
-	print_vector(vector, n);
-	//TODO liczenie równloegłe i czekanie na wyniki
+	//wysłanie sygnału starrt do workerów i czekanie na zakończenie
+	for(int i = 0; i < amount_of_workers; i++){
+		kill(workers[i], SIGUSR1);
+	}
+	while(amount_of_workers > 0){
+		wait();
+		amount_of_workers--;
+	}		
+		
 	double sum = 0;
 	for(int i = 0; i < amount_of_workers; i++){
 		sum += sums[i];
