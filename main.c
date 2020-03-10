@@ -5,21 +5,28 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <time.h>
 #include "range.h"
 #include "vector.h"
 #include "memory.h"
-
+#include <math.h>
+#define N 900000
 
 //To co robi worker
 void worker(int signal){}
 
 double vector_sum(double * vector, int start, int end, int n){
 	double sum = 0;
-	for(int i = start; i < end && i < n; i++)
-		sum += vector[i];
+	for(int i = start; i < end && i < n; i++){
+		//for(int j = 0; j < N; j++) //utrudnienia
+			sum += vector[i]/* * sin(20) * sin(40) * cos(40) * sin(30)*/;
+	}
 	return sum;
 }
 int main(int argc, char ** argv){
+	//clock_t full = clock();
+	//clock_t calculation;
+
 	if(argc < 3){
 		printf("./programik N plik_z_wektorem\n");
 		exit(1);
@@ -85,6 +92,7 @@ int main(int argc, char ** argv){
 		ranges[i].finish = to;
 	}
 	sleep(1);
+	//calculation = clock();
 	//wysłanie sygnału starrt do workerów i czekanie na zakończenie
 	for(int i = 0; i < amount_of_workers; i++){
 		kill(workers[i], SIGUSR1);
@@ -94,6 +102,10 @@ int main(int argc, char ** argv){
 	}		
 	double s= vector_sum(sums, 0, amount_of_workers, amount_of_workers);
 	printf("Suma elementów: %lf\n", s);
+	//double full_ms = (double) (clock() - full) * 1000.0 / CLOCKS_PER_SEC;
+	//double calculation_ms = (double)(clock() - calculation) * 1000.0 / CLOCKS_PER_SEC;
+	//printf("\ttotal: %f\n", full_ms);
+	//printf("\tcalc:  %f\n", calculation_ms);
 	return 0;
 }
 
