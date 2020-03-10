@@ -5,56 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-
-
-struct range{
-	int start;//włącznie
-	int finish;//wyłącznie
-};
-
-
-/*
- * Tworzy pamięć współdzieloną o określonym rozmiarze
- */
-void * create_shared_memory(size_t size){
-	int protection = PROT_READ | PROT_WRITE; //można zapisywać i odczytywać
-	int visiblity = MAP_SHARED | MAP_ANONYMOUS; //tylko procesy potomne będą wiedzieć o pamięci
-	return mmap(NULL, size, protection, visiblity, -1, 0);
-}
-
-void print_vector(double * vector, int n){
-	printf("[%f", vector[0]);
-	for(int i = 1; i < n; i++)
-		printf(" %f", vector[i]);
-	printf("]\n"); 
-}
-
-double * read_vector_from_file(char * file, int * n){
-	double * vector;
-	double temp;
-	FILE* f = fopen(file, "r");
-	if(f == NULL){
-		printf("Błąd przy otwieraniu pliku\n");
-		exit(2);
-	}
-	fscanf(f, "%d", n);
-	vector = create_shared_memory(sizeof(double) * n[0]);
-	for(int i = 0; i < (*n); i++){
-		fscanf(f, "%lf", &temp);
-		vector[i] = temp;
-	}
-	fclose(f);
-	return vector;	
-}
-
-int get_index(pid_t pid, pid_t * array, int n){	
-	for(int i = 0; i < n; i++){
-		if(pid == array[i])
-			return i;
-	}
-	return -1;
-}
-	
+#include "range.h"
+#include "vector.h"
+#include "memory.h"
 
 
 //To co robi worker
