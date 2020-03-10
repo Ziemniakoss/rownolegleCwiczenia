@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/mman.h>
 
+
 struct range{
 	int start;//włącznie
 	int finish;//wyłącznie
@@ -55,8 +56,16 @@ int get_index(pid_t pid, pid_t * array, int n){
 }
 	
 
-//To co robi worker
 
+//To co robi worker
+void worker(int signal){}
+
+double vector_sum(double * vector, int start, int end, int n){
+	double sum = 0;
+	for(int i = start; i < end && i < n; i++)
+		sum += vector[i];
+	return sum;
+}
 int main(int argc, char ** argv){
 	if(argc < 3){
 		printf("./programik N plik_z_wektorem\n");
@@ -69,7 +78,7 @@ int main(int argc, char ** argv){
 		exit(3);
 	}
 	double * vector;
-	int n; //długość wektora
+	int *n = create_shared_memory(sizeof(int)); //długość wektora
 	double * sums; 
 	pid_t * workers; // wszystkie pid workeróœ
 	struct range * ranges; 
@@ -83,12 +92,28 @@ int main(int argc, char ** argv){
 	
 
 	pid_t pid;
+	vector = read_vector_from_file(argv[2] , n);
 	printf("Tworzenie %d workerów...\n", amount_of_workers);
+	
 	for(int i = 0; i < amount_of_workers; i++){
 		pid = fork();
 		if(pid == 0){
-			//TODO konfiguracja odbior sygnału
-			sleep(20);
+			sigset_t mask; /* Maska sygnałów */
+			/* Konfiguracja obsługi sygnału USR1 */
+			struct sigaction usr1;
+			sigemptyset(&mask); /* Wyczyść maskę */
+			usr1.sa_handler = (&worker);
+			usr1.sa_mask = mask;
+			usr1.sa_flags = SA_SIGINFO;
+			sigaction(SIGUSR1, &usr1, NULL);
+			pause();
+
+			int index = get_index(getpid(), workers, amount_of_workers);
+			if(index == -1){
+				printf("hekkkk\n");
+				exit(6);
+			}
+			sums[index] = vector_sum(vector, ranges[index].start, ranges[index].finish, n[0]);
 			exit(0);
 		}else if(pid < 0){
 			printf("Błąd przy tworzeniu workera %d\n", i);
@@ -98,26 +123,24 @@ int main(int argc, char ** argv){
 		}
 	}	
 
-	printf("Wczytywanie wektora...\n");
 	//wczytywanie i ustawieani przedziałów
-	vector = read_vector_from_file(argv[2] , &n);
-	//TODO tworzenie przedziałów	
-
-
+	int h = n[0] / amount_of_workers + 1;
+	int to = 0;
+	for(int i = 0; i < amount_of_workers; i++){
+		ranges[i].start = to;
+		to += h;
+		ranges[i].finish = to;
+	}
+	sleep(1);
 	//wysłanie sygnału starrt do workerów i czekanie na zakończenie
 	for(int i = 0; i < amount_of_workers; i++){
 		kill(workers[i], SIGUSR1);
 	}
-	while(amount_of_workers > 0){
-		wait();
-		amount_of_workers--;
-	}		
-		
-	double sum = 0;
 	for(int i = 0; i < amount_of_workers; i++){
-		sum += sums[i];
-	}
-	printf("Suma elementów: %lf\n", sum);
+		wait();
+	}		
+	double s= vector_sum(sums, 0, amount_of_workers, amount_of_workers);
+	printf("Suma elementów: %lf\n", s);
 	return 0;
 }
 
