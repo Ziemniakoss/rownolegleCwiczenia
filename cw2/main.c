@@ -16,10 +16,10 @@ struct arg_struct {
 	int mB;
 	int nB;
 	double **matrixC;
-	int startN;
 	int startM;
-	int stopN;
+	int startN;
 	int stopM;
+	int stopN;
 	double *sum;
 	double *squares_sum;
 };
@@ -27,7 +27,7 @@ struct arg_struct {
 void *thread_handle(void *arg) {
 	struct arg_struct *args = arg;
 	double sum=0, squares_sum=0;
-	mulitply_matrix(args -> matrixA, args -> mA, args -> nA, args -> matrixB, args -> mB, args -> nB, args -> matrixC, args -> startN, args -> startM,  args -> stopN, args -> stopM, &sum, &squares_sum);
+	mulitply_matrix(args -> matrixA, args -> mA, args -> nA, args -> matrixB, args -> mB, args -> nB, args -> matrixC, args -> startM, args -> startN,  args -> stopM, args -> stopN, &sum, &squares_sum);
 
 	pthread_mutex_lock(&sum_lock);
 	*(args->sum) += sum;
@@ -92,10 +92,10 @@ int main(int argc, char ** argv){
 		args[i].mB = mB;
 		args[i].nB = nB;
 		args[i].matrixC = matrixC;
-		args[i].startN = rangeM[i];
-		args[i].startM = rangeN[i];
-		args[i].stopN = rangeM[i+1];
-		args[i].stopM = rangeN[i+1];
+		args[i].startM = rangeM[i];
+		args[i].startN = rangeN[i];
+		args[i].stopM = rangeM[i+1];
+		args[i].stopN = rangeN[i+1];
 		args[i].sum = &sum;
 		args[i].squares_sum = &squares_sum;
 		
@@ -109,7 +109,7 @@ int main(int argc, char ** argv){
 
     	for (int i = 0; i < nThreads; i++) {
             	if(pthread_join(threads[i], NULL) == -1)
-			printf("dada");
+			printf("Blad watku");
     	}	
 
 	printf("wynik mnozenia macierzy:\n");
