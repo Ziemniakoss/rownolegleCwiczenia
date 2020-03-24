@@ -1,5 +1,4 @@
-package com.company;
-
+package com.cw2;
 
 public class CountThread extends Thread {
 

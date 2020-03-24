@@ -1,4 +1,4 @@
-package com.company;
+package com.cw2;
 
 public class Sums {
     private double sum;

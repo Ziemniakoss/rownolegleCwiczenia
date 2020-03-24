@@ -1,5 +1,4 @@
-package com.company;
-
+package com.cw2;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
