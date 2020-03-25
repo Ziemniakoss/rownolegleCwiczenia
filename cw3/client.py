@@ -2,6 +2,7 @@ import math
 import pickle
 import sys
 from multiprocessing.managers import BaseManager
+from multiprocessing.queues import Queue
 from typing import List
 
 from utils.Result import Result
@@ -13,7 +14,7 @@ def readMatrix(filename: str) -> List[List[float]]:
 	rows = int(file.readline())
 	columns = int(file.readline())
 	if rows <= 0 or columns <= 0:
-		raise Exception("matrix must have at least 1 row and column")
+		raise Exception("Macierz musi mieć przynajmniej jeden rząd i kolumnę")
 	matrix: List[List[float]] = []
 
 	for i in range(rows):
@@ -23,45 +24,58 @@ def readMatrix(filename: str) -> List[List[float]]:
 	return matrix
 
 
+def readVector(filename: str) -> List[float]:
+	file = open(filename)
+	length = int(file.readline())
+	r = []
+	for i in range(length):
+		r.append(float(file.readline()))
+	return r
+
+
 if __name__ == '__main__':
-	if len(sys.argv) != 5:
-		print("[macierz plik] [wektor plik] [serverIp] [Na ile podzielic]")
+	if len(sys.argv) != 7:
+		print("[macierz plik] [wektor plik] [serverIp] [port] [Na ile podzielic] [haslo]")
 		exit(1)
 	print("Wczytujemy macierze")
 	matrix = readMatrix(sys.argv[1])
-	vector = readMatrix(sys.argv[2])
-	# can multiply?
+	vector = readVector(sys.argv[2])
+	# czy można pomnożyć?
 	if len(vector) != len(matrix[0]):
 		print(len(matrix), len(matrix[0]))
 		raise Exception("Niepoprawne rozmiary macierzy")
 
-	jobs = max(int(sys.argv[4]), 1)
-	elementsOfVector = math.ceil(1.0 * len(matrix) / jobs)
+	jobs = max(int(sys.argv[5]), 1)
+	elementsOfVector = math.ceil(1.0 * len(matrix[0]) / jobs)
 	print(f'dzielimy wektor na {jobs} części po max {elementsOfVector} elementów')
 
-	tasks = []
-	index = 0
+	ranges = {}
 	i = 0
-	while index < len(vector):
-		task = Task(i, matrix[index:index + elementsOfVector], vector)
-		index += elementsOfVector
+	index = 0
+	while i < len(vector):
+		ranges[i] = (i, i + elementsOfVector)
 		i += 1
-		tasks.append(task)
+		index += elementsOfVector  # todo refactor
+	print(len(ranges))
+	print(ranges)
 
 	print("Wysyłam dane")
-	serialized = pickle.dumps(tasks)
-
-	m = BaseManager(address=(sys.argv[3], 5000), authkey=b'blah')
+	task = Task(ranges, matrix, vector)
+	m = BaseManager(address=(sys.argv[3], int(sys.argv[4])), authkey=bytes(sys.argv[6], encoding="utf8"))
 	m.register("in_queue")
 	m.register("out_queue")
 	m.connect()
-	q = m.in_queue()
-	q.put(serialized)
+	q: Queue = m.in_queue()
+	q.put(pickle.dumps(task))
 	print("Wysłano, czekam na wyniki")
-	i = len(tasks)
-	results = {}
+
+	result = [0.0] * len(vector)
 	q = m.out_queue()
 	while i > 0:
-		r: Result = pickle.loads(q.get)
-		results[r.id] = r.result
+		r: Result = pickle.loads(q.get())
+		rr = task.ranges[r.i]
+		result[rr[0]:rr[1]] = r.result
+
+	# r: Result = pickle.loads(q.get)
+	# results[r.id] = r.result
 	print(results)
