@@ -7,4 +7,5 @@ if len(sys.argv) != 3:
 	exit(1)
 
 port = int(sys.argv[1])
+print("Startuje serwer na porcie ", port)
 TwoWayQueue("localhost", port, bytes(sys.argv[2], encoding="utf8"))

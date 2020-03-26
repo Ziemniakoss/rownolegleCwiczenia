@@ -1,5 +1,6 @@
 import pickle
 import sys
+import time
 from multiprocessing.managers import BaseManager
 from multiprocessing.queues import Queue
 import multiprocessing
@@ -43,7 +44,9 @@ if __name__ == '__main__':
 
 	while True:
 		task: Task = pickle.loads(inq.get())
+		print("Dostałęm zadanie!")
 		subtasks = []
+		start = time.time()
 		for key in task.ranges:
 			r = task.ranges[key]
 			subMatrix = task.a[r[0]:r[1]]
@@ -52,6 +55,7 @@ if __name__ == '__main__':
 		print(f'Rozwiazuje {len(subtasks)} podzadan')
 		with multiprocessing.Pool() as pool:
 			r = pool.map(solve,subtasks)
+		print(f'Obliczenia skonczone w {time.time()-start} sekund, wysyłam')
 		for x in r:
 			outq.put(pickle.dumps(x))
 		print("Skonczone")

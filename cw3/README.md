@@ -1,0 +1,2 @@
+# Obliczenia na wielu rdzeniach
+
