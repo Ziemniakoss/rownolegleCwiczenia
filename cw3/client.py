@@ -9,6 +9,10 @@ from typing import List
 from utils.Result import Result
 from utils.Task import Task
 
+"""
+Klient wczytujący dane z pliku, wysyłąjący je na serwer i łączący zwrócene wynik w całość
+"""
+
 
 def readMatrix(filename: str) -> List[List[float]]:
 	file = open(filename)
@@ -51,27 +55,32 @@ if __name__ == '__main__':
 
 	jobs = max(int(sys.argv[5]), 1)
 	elementsOfVector = math.ceil(1.0 * len(matrix) / jobs)
-	print(f'dzielimy wektor na {jobs} części po max {elementsOfVector} elementów')
+	print(f'dzielimy macierz na {jobs} części po max {elementsOfVector} rzędów')
 
-	ranges = {}
+	ranges = {} # przechowuje pary indeks -> odpowidający indekoswy zakres macierzy wymnożonej
+	tasks: List[Task] = []
 	i = 0
 	index = 0
 	while index < len(matrix):
+		task = Task(i, matrix[index:index + elementsOfVector], vector)
+		tasks.append(task)
+
 		ranges[i] = (index, index + elementsOfVector)
 		i += 1
 		index += elementsOfVector
 	timers["Wczytywanie macierzy i jej dzielenie"] = time.time() - start
+	print(ranges)
 
 	# Wysyłamy
 	start = time.time()
 	print("Wysyłam dane")
-	task = Task(ranges, matrix, vector)
 	m = BaseManager(address=(sys.argv[3], int(sys.argv[4])), authkey=bytes(sys.argv[6], encoding="utf8"))
 	m.register("in_queue")
 	m.register("out_queue")
 	m.connect()
 	q: Queue = m.in_queue()
-	q.put(pickle.dumps(task))
+	for t in tasks:
+		q.put(pickle.dumps(t))
 	timers["Wysyłanie"] = time.time() - start
 
 
@@ -82,7 +91,7 @@ if __name__ == '__main__':
 	q = m.out_queue()
 	while i > 0:
 		r: Result = pickle.loads(q.get())
-		rr = task.ranges[r.i]
+		rr = ranges[r.i]
 		result[rr[0]:rr[1]] = r.result
 		i -= 1
 	timers["Zbieranie wyników"] = time.time() - start
