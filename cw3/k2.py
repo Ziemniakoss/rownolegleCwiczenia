@@ -7,7 +7,7 @@ class QueueManager(BaseManager):
 
 
 QueueManager.register('in_queue')
-m = QueueManager(address=('localhost', 5000), authkey=b'blah')
+m = QueueManager(address=('localhost', 5000), authkey=b'hek')
 m.connect()
 queue = m.in_queue()
 

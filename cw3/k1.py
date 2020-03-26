@@ -6,9 +6,9 @@ class QueueManager(BaseManager):
 
 
 if __name__ == '__main__':
-	QueueManager.register('in_queue')
-	m = QueueManager(address=('localhost', 5000), authkey=b'blah')
+	QueueManager.register('out_queue')
+	m = QueueManager(address=('localhost', 5000), authkey=b'hek')
 	m.connect()
-	queue = m.in_queue()
+	queue = m.out_queue()
 	while True:
 		queue.put(input())

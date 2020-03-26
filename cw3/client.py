@@ -46,16 +46,16 @@ if __name__ == '__main__':
 		raise Exception("Niepoprawne rozmiary macierzy")
 
 	jobs = max(int(sys.argv[5]), 1)
-	elementsOfVector = math.ceil(1.0 * len(matrix[0]) / jobs)
+	elementsOfVector = math.ceil(1.0 * len(matrix) / jobs)
 	print(f'dzielimy wektor na {jobs} części po max {elementsOfVector} elementów')
 
 	ranges = {}
 	i = 0
 	index = 0
-	while i < len(vector):
+	while i < len(matrix):
 		ranges[i] = (i, i + elementsOfVector)
 		i += 1
-		index += elementsOfVector  # todo refactor
+		index += elementsOfVector -1  # todo refactor
 	print(len(ranges))
 	print(ranges)
 
@@ -69,13 +69,14 @@ if __name__ == '__main__':
 	q.put(pickle.dumps(task))
 	print("Wysłano, czekam na wyniki")
 
-	result = [0.0] * len(vector)
+	result = [0.0] * len(matrix)
+	print(len(result))
 	q = m.out_queue()
 	while i > 0:
 		r: Result = pickle.loads(q.get())
 		rr = task.ranges[r.i]
+		print(rr)
+		print(len(r.result))
 		result[rr[0]:rr[1]] = r.result
-
-	# r: Result = pickle.loads(q.get)
-	# results[r.id] = r.result
-	print(results)
+		i -= 1
+	print(result)
