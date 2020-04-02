@@ -35,24 +35,21 @@ lpodz = llpier; /*zapamietanie liczby podzielnikow*/
 
 #pragma omp parallel shared(pierwsze, llpier, lpodz) private(reszta, liczba, k)
 {
-#pragma omp for schedule(dynamic, chunk) 
-for(liczba = S+1; liczba <=N; liczba++){
-	for(k=0; k<lpodz; k++){
-	reszta = (liczba % pierwsze[k]);
-	if(reszta == 0) break; /*liczba zlozona*/
+	#pragma omp for schedule(dynamic, chunk) 
+	for(liczba = S+1; liczba <=N; liczba++){
+		for(k=0; k<lpodz; k++){
+			reszta = (liczba % pierwsze[k]);
+		if(reszta == 0) break; /*liczba zlozona*/
+		}
+		if(reszta != 0){
+			#pragma omp critical
+			pierwsze[llpier++] = liczba; /*zapamietanie liczby pierwszej*/
+		}
 	}
-
-	if(reszta != 0){
-#pragma omp critical
-	pierwsze[llpier++] = liczba; /*zapamietanie liczby pierwszej*/
-}
-	
-}
 }
 
 
-if((fp = fopen("primes.txt", "w")) == NULL)
-{
+if((fp = fopen("primes.txt", "w")) == NULL){
 	printf("Nie moge otworzyc pliku do zapisu\n");
 	exit(1);
 }
