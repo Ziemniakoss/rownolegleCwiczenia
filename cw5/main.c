@@ -26,15 +26,26 @@
  * 	3 - simpsona
  *
  * Komunikacja
- * 	 
+ * 	Główny procesy wysyła do potomnych tablicę 5 double:
+ * 	- pierwszy element to początek przedziału całkowania
+ * 	- drugi elemtnt to długość pojedynczego przedziału całkowania
+ * 	- trzeci element to ilość przedziałów całkowania
+ * 	- czwarty element to metoda całkowania(taka sama numeracja 
+ * 	  jak przy wywyoływaniu programu.
+ * 	
+ * 	
+ *	Procesy liczące odsyłają do procesu główngo jedynie jedną liczbę double.
  *
+ * 	W przypadku, gdyby nie dałoby się podzielić przedziałów między 
+ * 	wszystkie procesy, do procesu zostanie przekazany zerowa liczba przedziałów całkowania
+ * 	Proces który ją otrzyma zwraca od razu 0;
  */
 int main(int argc, char ** argv){	
         MPI_Init(&argc, &argv);
         int rank = -1;
-        int size = 0;
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	if(size < 2){
+        int processes = 0;
+	MPI_Comm_size(MPI_COMM_WORLD, &processes);
+	if(processes < 2){
 		fprintf(stderr, "Potrzebne przynajmniej 2 rdzenie\n");
 		MPI_Finalize();
 		exit(1);
@@ -44,6 +55,7 @@ int main(int argc, char ** argv){
 	if(rank == 0){
 		double start, end;
 		int parts, method;
+		//wczytujemy i sprawdzamy parametry
 		if(argc != 5){
 			fprintf(stderr, "%s [start] [koniec] [liczba_przedziałow] [metoda]\n", argv[0]);
 			fprintf(stderr, "Metody:\n\t1 - prostokątów\n\t2 - trapezów\n\t3- simpsona\n");
@@ -85,16 +97,36 @@ int main(int argc, char ** argv){
 			MPI_Finalize();
 			exit(9);
 		}
-				
+		//dzielimy i wysyłamy
+		//TODO podzielic i powysylac 
 
-		printf("%d parametrów\n", argc);
-		
+		double sum = 0;
+		double subSum;
+#ifdef DEBUG
+		printf("Czekam na wyniki\n");
+#endif
+		for(int i = 0; i < processes; i++){
+			MPI_Recv(&subSum, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			sum += subSum;
+		}
+		printf("Wynik całkowania: %lf\n", sum);
 		//MPI_Send(a, 3, MPI_INT,1, 0, MPI_COMM_WORLD);
 	}else{
-		int * a = malloc(4 * sizeof(int));
-		MPI_Recv(a, 3, MPI_INT, 0,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-//		printf("%d\n", a);
-		printf("Otrzymano %d %d %d\n", a[0], a[1], a[2]);
+		int * a = malloc(5 * sizeof(double));
+		MPI_Recv(a, 5, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+		double start = a[0];
+		double h = a[1];
+		//TODO zmienna z funkcja do liczenia
+		int intervals = a[4];
+		free(a);
+#ifdef DEBUG	
+		printf("%d: start = %lf, h = %lf, intervals = %d\n", start, h, intervals);
+#endif
+		double result = 0;
+		for(int i = 0; i < intervals; i++){
+			//TODO sum +=
+		}
+		MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
 	}
         MPI_Finalize();
