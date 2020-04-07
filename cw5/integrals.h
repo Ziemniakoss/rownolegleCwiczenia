@@ -14,5 +14,5 @@ double trapezoid(double (*func)(double x), double start, double end);
 /*
  * Liczneie całki metoda simpsona
  */
-double simposn(double (*func)(double x), double start, double end);
+double simpson(double (*func)(double x), double start, double end);
 #endif

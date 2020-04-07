@@ -3,6 +3,7 @@
 #include <mpi.h>
 #include "main.h"
 #include "integrals.h"
+#include <math.h>
 
 
 /* 
@@ -26,7 +27,7 @@
  * 	3 - simpsona
  *
  * Komunikacja
- * 	Główny procesy wysyła do potomnych tablicę 5 double:
+ * 	Główny procesy wysyła do potomnych tablicę 4 double:
  * 	- pierwszy element to początek przedziału całkowania
  * 	- drugi elemtnt to długość pojedynczego przedziału całkowania
  * 	- trzeci element to ilość przedziałów całkowania
@@ -51,7 +52,6 @@ int main(int argc, char ** argv){
 		exit(1);
 	}
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        printf("Ja jestem %d\n", rank);
 	if(rank == 0){
 		double start, end;
 		int parts, method;
@@ -59,80 +59,114 @@ int main(int argc, char ** argv){
 		if(argc != 5){
 			fprintf(stderr, "%s [start] [koniec] [liczba_przedziałow] [metoda]\n", argv[0]);
 			fprintf(stderr, "Metody:\n\t1 - prostokątów\n\t2 - trapezów\n\t3- simpsona\n");
-			MPI_Finalize();
-			exit(2);
+			MPI_Abort(MPI_COMM_WORLD, 2);
 		}
-		if(scanf(argv[1], "%lf", &start) != 1){
+		if(sscanf(argv[1], "%lf", &start) != 1){
 			fprintf(stderr, "Nie udało sie wczytać początku przedziału\n");
-			MPI_Finalize();
-			exit(3);
+			MPI_Abort(MPI_COMM_WORLD, 3);
 		}
-		if(scanf(argv[2], "%lf", &end) != 1){
+		if(sscanf(argv[2], "%lf", &end) != 1){
 			fprintf(stderr, "Nie udało sie wczytać końca przedziału\n");
-			MPI_Finalize();
-			exit(4);
+			MPI_Abort(MPI_COMM_WORLD, 4);
 		}
-		if(end > start){
+		if(end < start){
 			fprintf(stderr, "Zły przedział\n");
-			MPI_Finalize();
-			exit(5);
+			MPI_Abort(MPI_COMM_WORLD, 5);
 		}
-		if(scanf(argv[3], "%d", &parts) != 1){
+		if(sscanf(argv[3], "%d", &parts) != 1){
 			fprintf(stderr, "Nie udało sie wczytać ilości przedziałów\n");
-			MPI_Finalize();
-			exit(6);
+			MPI_Abort(MPI_COMM_WORLD, 6);
 		}
 		if(parts < 1){
 			fprintf(stderr, "Liczba części musi byc większa od zera\n");
-			MPI_Finalize();
-			exit(7);
+			MPI_Abort(MPI_COMM_WORLD, 7);
 		}
-		if(scanf(argv[4], "%d", &method) != 1){
+		if(sscanf(argv[4], "%d", &method) != 1){
 			fprintf(stderr, "Nie udało się wczytać kodu metody\n");
-	      		MPI_Finalize();
-			exit(8);
+	      		MPI_Abort(MPI_COMM_WORLD, 8);
 	  	}
 		if(method != RECTANGLE && method != TRAPEZOID && method != SIMPSON){
 			fprintf(stderr, "Nieznana metoda\n");
-			MPI_Finalize();
-			exit(9);
+			MPI_Abort(MPI_COMM_WORLD, 9);
 		}
 		//dzielimy i wysyłamy
-		//TODO podzielic i powysylac 
+		double len = abs(end - start);
+		double h = len / parts;
+		int partsPerProc = parts > processes ? ceil(parts / processes * 1.0) : 1;
+		int part = 0;
+		double * data = malloc(4 * sizeof(double));
+		for(int i = 0; i < processes; i++){
+			if(part < parts){
+				data[0] = start + h * partsPerProc * i;
+				data[1] = h;
+				data[2] = partsPerProc;
+				data[3] = method;
+				part += partsPerProc;
+			}else{
+				//nieważne co byle data[2] było 0
+				data[2] = 0;
+			}
+			#ifdef DEBUG
+			printf("Wysyłam do %d start %lf parts %lf h %lf metoda %lf\n", i, data[0],data[2],data[1],data[3]);
+			#endif	
+			MPI_Send(data, 4, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
 
+		}
+	}
+	//teraz obliczenia
+	double * a = malloc(4 * sizeof(double));
+	MPI_Recv(a, 4, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+	double start = a[0];
+	double h = a[1];
+	int m = a[3];
+	double (*integralFun)(double (*func)(double), double s, double e);
+	int intervals = a[2];
+	switch(m){
+		case RECTANGLE:
+			integralFun = rectangle;
+			break;
+		case TRAPEZOID:
+			integralFun = &trapezoid;
+			break;
+		case SIMPSON:
+			integralFun = &simpson;
+			break
+			;
+		default:
+			fprintf(stderr, "Błąd przy odbieraniu rodzaj metody, niepoprawny kod: %d\n",(int) a[3]); 
+			MPI_Abort(MPI_COMM_WORLD, 10);
+	}
+	#ifdef DEBUG	
+	printf("%d: start = %lf, h = %lf, intervals = %d\n", rank, start, h, intervals);
+	#endif
+	free(a);
+	double result = 0;
+	for(int i = 0; i < intervals; i++){
+		result += (*integralFun)(f, start, start + h);
+		start += h;
+	}
+	MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	
+	//Teraz zbieramy wszystko do razem
+	if(rank == 0){
 		double sum = 0;
 		double subSum;
-#ifdef DEBUG
+		#ifdef DEBUG
 		printf("Czekam na wyniki\n");
-#endif
+		#endif
 		for(int i = 0; i < processes; i++){
 			MPI_Recv(&subSum, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			sum += subSum;
+			#ifdef DEBUG
+			printf("Z %d dostałem %lf\n", i, subSum);
+			#endif
+                	sum += subSum;
 		}
 		printf("Wynik całkowania: %lf\n", sum);
-		//MPI_Send(a, 3, MPI_INT,1, 0, MPI_COMM_WORLD);
-	}else{
-		int * a = malloc(5 * sizeof(double));
-		MPI_Recv(a, 5, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-		double start = a[0];
-		double h = a[1];
-		//TODO zmienna z funkcja do liczenia
-		int intervals = a[4];
-		free(a);
-#ifdef DEBUG	
-		printf("%d: start = %lf, h = %lf, intervals = %d\n", start, h, intervals);
-#endif
-		double result = 0;
-		for(int i = 0; i < intervals; i++){
-			//TODO sum +=
-		}
-		MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-
 	}
-        MPI_Finalize();
+	MPI_Finalize();
         return 0;
 }
 
 double f(double x){
-	return x * x;
+	return x ;
 }

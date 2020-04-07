@@ -1,4 +1,4 @@
-#
+#include "integrals.h"
 /*
  * Liczenie całki metodą prostokątów
  */
@@ -18,7 +18,7 @@ double trapezoid(double (*func)(double x), double start, double end){
 /*
  * Liczneie całki metoda simpsona
  */
-double simposn(double (*func)(double x), double start, double end){
+double simpson(double (*func)(double x), double start, double end){
 	double midPoint = (end + start) / 2;
 	double h = (end - start) / 2;
 	double y0 = (func)(start);
