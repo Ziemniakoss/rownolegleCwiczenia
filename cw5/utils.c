@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "utils.h"
+#include "integrals.h"
 #include <mpi.h>
 
 void init(int argc, char ** argv, double * start, double * end, int * parts, int * method){
@@ -46,3 +47,32 @@ void init(int argc, char ** argv, double * start, double * end, int * parts, int
 double f(double x){
 	return x * x;
 }
+
+double calculate(double start, double h, int method, int intervals){
+        double (*integralFun)(double (*func)(double x), double s, double e);
+        switch(method){
+                case RECTANGLE:
+                        integralFun = rectangle;
+                        break;
+                case TRAPEZOID:
+                        integralFun = &trapezoid;
+                        break;
+                case SIMPSON:
+                        integralFun = &simpson;
+                        break
+                        ;
+                default:
+                        fprintf(stderr, "Błąd przy odbieraniu rodzaj metody, niepoprawny kod: %d\n", method);
+                        MPI_Abort(MPI_COMM_WORLD, 10);
+        }
+        #ifdef DEBUG
+        printf("%d: start = %lf, h = %lf, intervals = %d\n", rank, start, h, intervals);
+        #endif
+        double result = 0;
+        for(int i = 0; i < intervals; i++){
+                result += (*integralFun)(f, start, start + h);
+                start += h;
+        }
+        return result;
+}
+

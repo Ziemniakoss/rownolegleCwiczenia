@@ -18,4 +18,10 @@ void init(int argc, char ** argv, double * start, double * end, int * parts, int
  * Funkcja dla której liczymy całkę
  */
 double f(double x);
+
+
+/*
+ * Oblicza wartość całki dla funkcji f.
+ */
+double calculate(double start, double h, int method, int iterations);
 #endif
