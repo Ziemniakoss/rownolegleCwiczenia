@@ -26,7 +26,7 @@ Kod metody to jedna z poniższych liczb:
  - 2 dla metody trapezów
  - 3 dla metody Simsona
 
-### Przykłądowe wywołania
+### Przykładowe wywołania
 
 ```bash
 mpiexec isend_irecv.out 0 2000 2000 2
