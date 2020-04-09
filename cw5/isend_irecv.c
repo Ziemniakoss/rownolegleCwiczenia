@@ -103,7 +103,7 @@ int main(int argc, char ** argv){
 			sum += results[i];
 		}
 		free(results);
-		printf("Wynik: %lf\n", sum);
+		printf("%lf\n", sum);
 	}else{
 		MPI_Status status;
 		MPI_Wait(&calculationRequest, &status);

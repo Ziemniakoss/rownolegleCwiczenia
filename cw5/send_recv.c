@@ -61,7 +61,6 @@ int main(int argc, char ** argv){
 		#ifdef DEBUG
 		printf("start %lf end %lf parts %d met %d\n", start, end, parts, method);
 		#endif
-		//wczytujemy i sprawdzamy parametry
 		//dzielimy i wysyłamy
 		double len = abs(end - start);
 		double h = len / parts;
@@ -89,35 +88,8 @@ int main(int argc, char ** argv){
 	//teraz obliczenia
 	double * a = malloc(4 * sizeof(double));
 	MPI_Recv(a, 4, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-	double start = a[0];
-	double h = a[1];
-	int m = a[3];
-	double (*integralFun)(double (*func)(double), double s, double e);
-	int intervals = a[2];
-	switch(m){
-		case RECTANGLE:
-			integralFun = rectangle;
-			break;
-		case TRAPEZOID:
-			integralFun = &trapezoid;
-			break;
-		case SIMPSON:
-			integralFun = &simpson;
-			break
-			;
-		default:
-			fprintf(stderr, "Błąd przy odbieraniu rodzaj metody, niepoprawny kod: %d\n",(int) a[3]); 
-			MPI_Abort(MPI_COMM_WORLD, 10);
-	}
-	#ifdef DEBUG	
-	printf("%d: start = %lf, h = %lf, intervals = %d\n", rank, start, h, intervals);
-	#endif
+	double result = calculate(a[0], a[1], a[3], a[2]);
 	free(a);
-	double result = 0;
-	for(int i = 0; i < intervals; i++){
-		result += (*integralFun)(f, start, start + h);
-		start += h;
-	}
 	MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 	
 	//Teraz zbieramy wszystko do razem
@@ -134,7 +106,7 @@ int main(int argc, char ** argv){
 			#endif
                 	sum += subSum;
 		}
-		printf("Wynik całkowania: %lf\n", sum);
+		printf("%lf\n", sum);
 	}
 	MPI_Finalize();
         return 0;

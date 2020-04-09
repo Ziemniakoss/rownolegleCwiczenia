@@ -27,19 +27,18 @@
  * 	3 - simpsona
  *
  * Komunikacja
- * 	Główny procesy wysyła do potomnych tablicę 4 double:
- * 	- pierwszy element to początek przedziału całkowania
- * 	- drugi elemtnt to długość pojedynczego przedziału całkowania
- * 	- trzeci element to ilość przedziałów całkowania
- * 	- czwarty element to metoda całkowania(taka sama numeracja 
- * 	  jak przy wywyoływaniu programu.
- * 	
- * 	
- *	Procesy liczące odsyłają do procesu główngo jedynie jedną liczbę double.
+ * 	Do komuikkacji wykorzystujemy MPI_Scatter i MPI_Reduce.
  *
- * 	W przypadku, gdyby nie dałoby się podzielić przedziałów między 
- * 	wszystkie procesy, do procesu zostanie przekazany zerowa liczba przedziałów całkowania
- * 	Proces który ją otrzyma zwraca od razu 0;
+ * Króki opis działania
+ * 	Proces z rangą 0 tworzy główny buffor o wielkości 4 * processes *sizeof(double).
+ * 	W tym buforze umieszcza dane do wysłania. Każdemy procesowi(sobie też) wysyła 4 liczby double:
+ * 	 - początek przedziału całkowania
+ * 	 - długość przedziału całkowania
+ * 	 - ile przedziałów ma zcałkować
+ * 	 - kod metody
+ * 	Następnie każdy proces oblicza lokalną całkę.
+ * 	Po obliczeniu następuje operacja MPI_Reduce któ©a sumuje wszystkie lokalne
+ * 	sumy w jedną globalną
  */
 int main(int argc, char ** argv){	
         MPI_Init(&argc, &argv);
@@ -51,87 +50,54 @@ int main(int argc, char ** argv){
 		MPI_Finalize();
 		exit(1);
 	}
+	double * buffor;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	if(rank == 0){
 		double start, end;
 		int parts, method;
 		init(argc, argv, &start, &end, &parts, &method);
-		printf("start %lf end %lf parts %d met %d\n", start, end, parts, method);
-		//wczytujemy i sprawdzamy parametry
-		//dzielimy i wysyłamy
+		//dzielimy dane
 		double len = abs(end - start);
 		double h = len / parts;
 		int partsPerProc = parts > processes ? ceil(parts / processes * 1.0) : 1;
 		int part = 0;
-		double * data = malloc(4 * sizeof(double));
+		buffor = malloc(4 * processes * sizeof(double));
+		if(buffor == NULL){
+			fprintf(stderr, "Błąd przy tworzeniu bufora\n");
+			MPI_Abort(MPI_COMM_WORLD, 12);
+		}
 		for(int i = 0; i < processes; i++){
 			if(part < parts){
-				data[0] = start + h * partsPerProc * i;
-				data[1] = h;
-				data[2] = partsPerProc;
-				data[3] = method;
+				int baseIndex = i * 4;
+				buffor[baseIndex] = start + h * partsPerProc * i;
+				buffor[baseIndex + 1] = h;
+				buffor[baseIndex + 2] = partsPerProc;
+				buffor[baseIndex + 3] = method;
 				part += partsPerProc;
 			}else{
-				//nieważne co byle data[2] było 0
-				data[2] = 0;
+				//nieważne co byle liczba iteracji była równa 0
+				buffor[2 + i * 4] = 0;
 			}
-			#ifdef DEBUG
-			printf("Wysyłam do %d start %lf parts %lf h %lf metoda %lf\n", i, data[0],data[2],data[1],data[3]);
-			#endif	
-			MPI_Send(data, 4, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
-
 		}
 	}
 	//teraz obliczenia
-	double * a = malloc(4 * sizeof(double));
-	MPI_Recv(a, 4, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-	double start = a[0];
-	double h = a[1];
-	int m = a[3];
-	double (*integralFun)(double (*func)(double), double s, double e);
-	int intervals = a[2];
-	switch(m){
-		case RECTANGLE:
-			integralFun = rectangle;
-			break;
-		case TRAPEZOID:
-			integralFun = &trapezoid;
-			break;
-		case SIMPSON:
-			integralFun = &simpson;
-			break
-			;
-		default:
-			fprintf(stderr, "Błąd przy odbieraniu rodzaj metody, niepoprawny kod: %d\n",(int) a[3]); 
-			MPI_Abort(MPI_COMM_WORLD, 10);
+	double * recvBuffor = malloc(4 * sizeof(double));
+	if(recvBuffor == NULL){
+		fprintf(stderr, "%d Błąd przy tworzeniu bufora na odbiór\n", rank);
+		MPI_Abort(MPI_COMM_WORLD, 13);
 	}
-	#ifdef DEBUG	
-	printf("%d: start = %lf, h = %lf, intervals = %d\n", rank, start, h, intervals);
-	#endif
-	free(a);
-	double result = 0;
-	for(int i = 0; i < intervals; i++){
-		result += (*integralFun)(f, start, start + h);
-		start += h;
-	}
-	MPI_Send(&result, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	MPI_Scatter(buffor, 4, MPI_DOUBLE, 
+			recvBuffor, 4, MPI_DOUBLE, 
+			0, MPI_COMM_WORLD);
+	double localSum = calculate(recvBuffor[0], recvBuffor[1], recvBuffor[3], recvBuffor[2]);
+	free(recvBuffor);
 	
-	//Teraz zbieramy wszystko do razem
+	double globalSum = 0;
+	MPI_Reduce(&localSum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 	if(rank == 0){
-		double sum = 0;
-		double subSum;
-		#ifdef DEBUG
-		printf("Czekam na wyniki\n");
-		#endif
-		for(int i = 0; i < processes; i++){
-			MPI_Recv(&subSum, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			#ifdef DEBUG
-			printf("Z %d dostałem %lf\n", i, subSum);
-			#endif
-                	sum += subSum;
-		}
-		printf("Wynik całkowania: %lf\n", sum);
-	}
+		printf("%lf\n", globalSum);
+		free(buffor);
+	}	
 	MPI_Finalize();
         return 0;
 }
