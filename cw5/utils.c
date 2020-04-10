@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "utils.h"
 #include "integrals.h"
 #include <mpi.h>
@@ -45,7 +46,8 @@ void init(int argc, char ** argv, double * start, double * end, int * parts, int
  * Funkcja dla której liczymy całkę
  */
 double f(double x){
-	return x * x;
+	return sin(x) * cos(x) * x / x / sin(x) * sin(x * cos(x));
+	//return x * x;
 }
 
 double calculate(double start, double h, int method, int intervals){

@@ -77,6 +77,7 @@ int main(int argc, char ** argv){
 			}else{
 				//nieważne co byle liczba iteracji była równa 0
 				buffor[2 + i * 4] = 0;
+				buffor[3 + i * 4] = 1;
 			}
 		}
 	}
