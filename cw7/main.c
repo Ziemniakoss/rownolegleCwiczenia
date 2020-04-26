@@ -6,6 +6,7 @@
 #include "str_int_map.h"
 #include "extractors.h"
 #define MASTER 0
+#define INIT_SIZE 64 //początkowy rozmiar słownika
 
 int main(int argc, char ** argv){
 	MPI_Init(&argc, &argv);
@@ -13,6 +14,7 @@ int main(int argc, char ** argv){
 	MPI_Comm_size(MPI_COMM_WORLD, &processes);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	int * inBuffor;
+	struct map_t map;//mapa wartości do redukcji
 	//sprawdzamy argumenty
 	if(rank == MASTER){
 		if(argc != 3){
@@ -30,6 +32,10 @@ int main(int argc, char ** argv){
 			fprintf(stderr, "Nieznany tryb pracy\n");
 			MPI_Abort(MPI_COMM_WORLD, 2);
 		}
+		if(init_map(&map, INIT_SIZE) != 0){
+			fprintf(stderr, "Błąd przy inicjalizacji słownika\n");
+			MPI_Abort(MPI_COMM_WORLD, 9);
+		}
 		FILE * logFile = fopen(argv[2], "r");
 		if(logFile == NULL){
 			fprintf(stderr, "Błąd przy otwieraniu pliku, może nie istnieć lub nie masz dostępu\n");
@@ -43,10 +49,10 @@ int main(int argc, char ** argv){
 			if(r == NULL)
 				break;
 			c++;
-			printf("%d %s\n", c, r);
-			free(r);
+			add(&map, r);
 		}
 		printf("%d linii\n", c);
+		printf("%d wartości\n", map.maxIndex + 1);
 		extr_finalize();
 		fclose(logFile);			
 
@@ -54,28 +60,11 @@ int main(int argc, char ** argv){
 	//TODO obliczenia
 	if(rank == MASTER){
 		//TODO reduce i print
+		//print(&map);
+		free_map(&map);
 	}
 	MPI_Finalize();	
-	/*	struct sl_map_t * map = create_map(3);
-	printf("aaa\n");
-	add(map, "aaa");
-	add(map, "bbb");
-	add(map, "ccc");
-	add(map, "ddd");
-	int * indexes = malloc(sizeof(int) * 3);
-	long * values = malloc(sizeof(long) * 3);
-	indexes[0] = 0;
-	indexes[1] = 0;
-	indexes[2] = 3;
-	values[0] = 10;
-	values[1] = 2;
-	values[2] = 5;
-	reduce(map, indexes, values, 3);
-        reduce(map, indexes, values, 3);
-        reduce(map, indexes, values, 3);
-	
-	print(map);
-*/	return 0;
+	return 0;
 }
 
 

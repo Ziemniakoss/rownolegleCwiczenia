@@ -9,7 +9,7 @@ int buffSize;
 FILE * extr_in;
 
 void extr_init(int mode, FILE * in){
-	buffSize = 3000;
+	buffSize = 500;
 	buffor = malloc(sizeof(char) * buffSize);
 	if(buffor == NULL){
 		fprintf(stderr, "Błąd przy inicjalizacji buffora wejsściowego\n");
@@ -75,8 +75,8 @@ char * extr_endpoint(){
 	while((c = fgetc(extr_in)) != '"');
 	while((c = fgetc(extr_in)) != ' ');
 
-	//skanowanko wszystkiego do spacji(końca endpointu)
-	while((c = fgetc(extr_in)) != ' '){
+	//skanowanko wszystkiego do spacji(końca endpointu) lub '?'
+	while((c = fgetc(extr_in)) != ' ' && c != '?'){
 		if(len > buffSize){
 			buffSize += 200;
 			buffor = realloc(buffor, buffSize * sizeof(char));

@@ -49,5 +49,9 @@ void reduce(struct map_t * map, int * indexes, int * values, int n);
  */
 void print(struct map_t * map);
 
-void init_map(struct map_t * map, int size);
+/*
+ * Inicjalizuje mapę o podanym rozmiarze.
+ * Zwraca liczbę ujemną w przypadku błędu.
+ */
+int init_map(struct map_t * map, int size);
 #endif

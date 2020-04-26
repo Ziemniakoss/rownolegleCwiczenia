@@ -20,15 +20,11 @@ int add(struct map_t * map, char * word){
 	}
 	map->maxIndex++;
 	if(map->maxIndex > map->size){
-		printf("teraz %ld\n", map->size*sizeof(char *));
 		map->size *= 2;
-		printf("%d\n", map->size);
-		printf("nowe %ld\n", sizeof(char **) * map->size);
 		map->strings = realloc(map->strings, map->size * sizeof(char *));
 		if(map->strings == NULL){
 			return -1;
 		}
-		printf("aaa\n");
 		map->values = realloc(map->values, map->size * sizeof(int));
 		if(map->values == NULL){
 			return -1;
@@ -44,7 +40,6 @@ void free_map(struct map_t * map){
 	for(int i = 0; i < map->maxIndex; i++){
 		free(map->strings[i]);
 	}
-	printf("aaaaaaaa\n");
 	free(map->values);
 	free(map->strings);
 }
@@ -63,26 +58,25 @@ void print(struct map_t * map){
 		printf("%s: %d razy\n", map->strings[i], map->values[i]);
 }
 
-void init_map(struct map_t * map, int size){
+int init_map(struct map_t * map, int size){
 	if(size < 1){
 		fprintf(stderr, "size mniejszy od zera\n");
-		map = NULL;
-		return;
+		
+		return -1;
 	}
 	map->size = size;
 	map->maxIndex = -1;
 	map->strings = malloc(size * sizeof(char *));
 	if(map->strings == NULL){
 		fprintf(stderr, "Błąd przy alokacji pamięci na stringi\n");
-		map = NULL;
-		return;
+		return -2;
 	}
 	map->values = malloc(size * sizeof(int));
 	if(map->values == NULL){
 		fprintf(stderr, "Błąd przy alokacji pamięci na wartości\n");
-		map = NULL;
-		return;
+		return -3;
 	}
+	return 0;
 }
 
 
