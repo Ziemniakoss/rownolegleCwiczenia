@@ -1,41 +1,37 @@
-#ifndef _STR_LONG_MAP_H_
-#define _STR_LONG_MAP_H_
+#ifndef _STR_INT_MAP_H_
+#define _STR_INT_MAP_H_
 
 /*
  * Mapa z kluczami typu string i wartościami long
  */
-typedef struct sl_map_t{
+typedef struct map_t{
 	int size;
 	int maxIndex;
 	char ** strings;
-	long * values;
-} sl_map;
+	int * values;
+} map_t;
 
 /*
  * Zwraca index danego słowa w mapie. Gdy takiego słowa
  * nie ma zwraca -1
  */
-int getIndex(struct sl_map_t * map, char * word);
+int getIndex(struct map_t * map, char * word);
 
 /*
  * Dodaje słowo do mapy ale tylko, gdy jeszcze takiego 
- * słowa nie ma. Zwraca indeks nowego(lub istniejacego) słowa
+ * słowa nie ma. Gdy takie słowo już istnieje, zwalnia pamięć
+ * pod word
+ *
+ * Zwraca indeks nowego(lub istniejacego) słowa
  * lub -1 gdy nie udało się dodać nowego słowa(Np problemy 
  * z alokacją pamięci)
  */
-int add(struct sl_map_t * map, char * word);
+int add(struct map_t * map, char * word);
 
 /*
  * Zwalnia miejsce zajmowane przez mapę
  */
-void free_map(struct sl_map_t * map);
-
-/*
- * Tworzy mapę o określonym rozmairze. Zwraca
- * NULL gdy nie udało się zarezerwować pamieci lub podany 
- * rozmiar był mniejszy lub równy 0
- */
-struct sl_map_t * create_map(int size);
+void free_map(struct map_t * map);
 
 /*
  * Dokonuje redukcji map. Druga mapa jest opisana przez dwie tablice 
@@ -46,10 +42,12 @@ struct sl_map_t * create_map(int size);
  *
  * Podczas redukcji dodawane są wartości dla danego indeksu w mapie 1.
  */
-void reduce(struct sl_map_t * map, int * indexes, long * values, int n);
+void reduce(struct map_t * map, int * indexes, int * values, int n);
 
 /*
  * Drukuje dane o mapie na konsolę
  */
-void print(struct sl_map_t * map);
+void print(struct map_t * map);
+
+void init_map(struct map_t * map, int size);
 #endif
