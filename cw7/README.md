@@ -1,0 +1,39 @@
+# MapReduce w MPI
+
+Program do robienia statystyk plików z logami.
+
+## Obsługiwane tryby
+
+Program tworzy statystyki na 3 sposoby:
+- addr: który adres ip wysłał ile zapytań
+- stat: Ile zapytań było wysłane do którego endpointu
+- time: Ile zapytań było wysyłane w danym czasie(z dokładnością do sekundy)
+
+## Budowanie i uruchamianie
+
+Do zbudowania programu potrzebna jest zainstalowane biblioteka mpi. Program można łatwo zbudować z użyciem make
+```bash
+make
+```
+
+Następnie można go uruchomić za pomocą komendy
+```bash
+mpiexec log_parser.out [opcja] [log]
+```
+
+
+### Przykładowe wywołania
+Zliczanie adresów ip:
+```bash
+mpiexec log_parser.out stat a2.log
+```
+
+Spradzanie obciążenia endpointów:
+```bash
+mpiexec log_parser.out stat a2.log
+```
+
+Sprawdzanie ilości zdarzeń w czasie z dokładnością do sekundy
+```bash
+mpiexec log_parser.out stat a2.log
+```
