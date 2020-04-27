@@ -129,7 +129,7 @@ int main(int argc, char ** argv){
 	for(int i = 0; i < size; i++){
 		int ui = -1;//index w tablicy unikalnych indexów
 		for(int j = 0; j < uniqueIndexes; j++)
-			if(ints[j] = indexes[i]){
+			if(ints[j] == indexes[i]){
 				ui = j;
 				break;
 			}
@@ -151,42 +151,36 @@ int main(int argc, char ** argv){
 	}
 
 	//teraz zbieramy
-	MPI_Gather(&uniqueIndexes, 1, MPI_INT,
-			sizes, processes, MPI_INT, MASTER, MPI_COMM_WORLD);
-	int * mergedInts;
-	int * mergedOccurances;
-	int totalSize;
 	if(rank == MASTER){
-		totalSize = sizes[0];
-		offsets[0] = 0;
+		reduce(&map, ints, occurances, uniqueIndexes);
 		for(int i = 1; i < processes; i++){
-			offsets[i] = offsets[i - 1] + sizes[i - 1];
-			totalSize += sizes[i];
+			int recvSize;
+			int * recvI;
+			int * recvO;
+			MPI_Recv(&recvSize, 1, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			recvI = malloc(recvSize * sizeof(int));
+			recvO = malloc(recvSize * sizeof(int));
+			if(recvI == NULL || recvO == NULL){
+				MPI_Abort(MPI_COMM_WORLD, 25);
+			}
+			MPI_Recv(recvI, recvSize, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                        MPI_Recv(recvO, recvSize, MPI_INT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			reduce(&map, recvI, recvO, recvSize);
+			free(recvI);
+			free(recvO);
 		}
-		mergedInts = malloc(totalSize * sizeof(int));
-		mergedOccurances = malloc(totalSize * sizeof(int));
-		if(mergedInts == NULL || mergedOccurances == NULL){
-			fprintf(stderr, "Błąd alokacji tablic na połączone dane\n");
-			MPI_Abort(MPI_COMM_WORLD, 23);
-		}
+		print(&map);
+		free_map(&map);
+	}else{
+		MPI_Send(&uniqueIndexes, 1, 
+				MPI_INT, MASTER, 0, MPI_COMM_WORLD);
+		MPI_Send(ints, uniqueIndexes, 
+				MPI_INT, MASTER, 0, MPI_COMM_WORLD);
+		MPI_Send(occurances, uniqueIndexes, 
+				MPI_INT, MASTER, 0, MPI_COMM_WORLD);
 	}
-	MPI_Gatherv(ints, uniqueIndexes, MPI_INT, 
-			mergedInts, &totalSize, offsets, MPI_INT, 
-			MASTER, MPI_COMM_WORLD);
-	MPI_Gatherv(occurances, uniqueIndexes, MPI_INT,
-			mergedOccurances, &totalSize, offsets, MPI_INT,
-			MASTER, MPI_COMM_WORLD);
 	free(ints);
 	free(occurances);
-	if(rank == MASTER){
-		reduce(&map, mergedInts, mergedOccurances, totalSize);
-		print(&map);
-		free(mergedInts);
-		free(mergedOccurances);
-		free(sizes);
-		free(offsets);
-		free_map(&map);
-	}
 	MPI_Finalize();	
 	return 0;
 }

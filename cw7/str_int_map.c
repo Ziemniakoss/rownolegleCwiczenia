@@ -39,8 +39,7 @@ int add(struct map_t * map, char * word){
 }
 
 void free_map(struct map_t * map){
-	
-	for(int i = 0; i <= map->maxIndex; i++){
+	for(int i = 0; i < map->maxIndex; i++){
 		free(map->strings[i]);
 	}
 	free(map->values);
