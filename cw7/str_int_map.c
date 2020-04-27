@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "str_int_map.h"
 #include <string.h>
+#include <mpi.h>
 
 
 int getIndex(struct map_t * map, char * word){
@@ -23,11 +24,13 @@ int add(struct map_t * map, char * word){
 		map->size *= 2;
 		map->strings = realloc(map->strings, map->size * sizeof(char *));
 		if(map->strings == NULL){
-			return -1;
+			fprintf(stderr, "Błąd przy powiększaniu mapy, alokacja stringów\n");
+			MPI_Abort(MPI_COMM_WORLD, 12);
 		}
 		map->values = realloc(map->values, map->size * sizeof(int));
 		if(map->values == NULL){
-			return -1;
+			fprintf(stderr, "Błąd przy powiększaniu mapy, alokacja values\n");
+			MPI_Abort(MPI_COMM_WORLD, 13);
 		}
 	}
 	map->strings[map->maxIndex] = word;
@@ -37,7 +40,7 @@ int add(struct map_t * map, char * word){
 
 void free_map(struct map_t * map){
 	
-	for(int i = 0; i < map->maxIndex; i++){
+	for(int i = 0; i <= map->maxIndex; i++){
 		free(map->strings[i]);
 	}
 	free(map->values);

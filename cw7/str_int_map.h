@@ -21,10 +21,6 @@ int getIndex(struct map_t * map, char * word);
  * Dodaje słowo do mapy ale tylko, gdy jeszcze takiego 
  * słowa nie ma. Gdy takie słowo już istnieje, zwalnia pamięć
  * pod word
- *
- * Zwraca indeks nowego(lub istniejacego) słowa
- * lub -1 gdy nie udało się dodać nowego słowa(Np problemy 
- * z alokacją pamięci)
  */
 int add(struct map_t * map, char * word);
 

@@ -1,4 +1,4 @@
-log_parser.out: main.c str_int_map.o extractors.o
+log_parser.out: main.c str_int_map.o extractors.o 
 	mpicc main.c str_int_map.o extractors.o -o log_parser.out
 	
 str_int_map.o: str_int_map.c str_int_map.h
