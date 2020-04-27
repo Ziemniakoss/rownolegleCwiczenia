@@ -9,6 +9,19 @@
 #define INIT_SIZE 64 //początkowy rozmiar słownika i tablicy przechowujacej indeksy
 #define IN_BUFFOR_SIZE_INCREASE 200 //o tyle będzie się zwiększał bufor przechowujący indeksy słów, gdy sie przepełni
 
+/**
+ * Program do tworzenia statystyk z plików z logami.
+ *
+ * Schemat algorytmu:
+ * 	1. Utwórz mapę wszsytkich unikalnych wartości w pliku z logiem
+ * 	2. Utwórz tablicę z indeksami w taki sposób, że i-ty element tablicy to wartość w i-tej lini pliku
+ * 	3. Podziel i rozseślij tą tablicę
+ * 	4. Na każdym podprocesie stwórz mapę gdzie:
+ * 		- klucze to będą indeksy słów 
+ * 		- wartości to liczba ich występowań w przesłanej podtablicy
+ * 	5. Zredukuj wszystkie tablice do jednej wielkiej
+ * 	6. Wypisz na stdout  zredukowaną ostateczną tablicę
+ */
 int main(int argc, char ** argv){
 	MPI_Init(&argc, &argv);
 	int rank, processes;
@@ -163,6 +176,8 @@ int main(int argc, char ** argv){
 	MPI_Gatherv(occurances, uniqueIndexes, MPI_INT,
 			mergedOccurances, &totalSize, offsets, MPI_INT,
 			MASTER, MPI_COMM_WORLD);
+	free(ints);
+	free(occurances);
 	if(rank == MASTER){
 		reduce(&map, mergedInts, mergedOccurances, totalSize);
 		print(&map);
