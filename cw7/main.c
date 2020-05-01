@@ -37,11 +37,11 @@ int main(int argc, char ** argv){
 			MPI_Abort(MPI_COMM_WORLD, 1);
 		}
 		int mode;
-		if(strcmp("addr", argv[1]) == 0){
+		if(strcmp("-addr", argv[1]) == 0){
 			mode = MODE_ADDR;
-		}else if(strcmp("stat", argv[1]) == 0){
+		}else if(strcmp("-stat", argv[1]) == 0){
 			mode = MODE_STAT;
-		}else if(strcmp("time", argv[1]) == 0){
+		}else if(strcmp("-time", argv[1]) == 0){
 			mode = MODE_TIME;
 		}else{
 			fprintf(stderr, "Nieznany tryb pracy\n");
@@ -66,6 +66,7 @@ int main(int argc, char ** argv){
 			MPI_Abort(MPI_COMM_WORLD, 11);
 		}
 		//tworzymy tablicę indeksów
+		printf("Wczytujemy dane\n");
 		while(1){
 			char * r = extr_next();
 			if(r == NULL)
@@ -83,6 +84,7 @@ int main(int argc, char ** argv){
 		}
 		extr_finalize();
 		fclose(logFile);
+		printf("Dzielimy\n");
 		//dzielimy ją między procesy
 		sizes = malloc(processes * sizeof(int));
 		if(sizes == NULL){
