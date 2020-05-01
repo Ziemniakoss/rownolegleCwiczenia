@@ -33,7 +33,7 @@ char * extr_next(){
 		case MODE_ADDR:
 			return extr_addr();
 		case MODE_STAT:
-			return extr_endpoint();
+			return extr_status();
 		case MODE_TIME:
 			return extr_time();
 		default:
@@ -65,40 +65,31 @@ char * extr_addr(){
 }
 
 
-char * extr_endpoint(){
+char * extr_status(){
 	char c = fgetc(extr_in);
 	if(c == EOF){
 		return NULL;
 	}
 	int len = 0;
-	//pomijamy wszsytko do pierwszej spacji po pierwszym cudzyslowu
+	//pomijamy wszsytko do drugiego "
+	while(fgetc(extr_in) != 'H' || fgetc(extr_in) != 'T' || fgetc(extr_in) != 'T' || fgetc(extr_in) != 'P');
 	while((c = fgetc(extr_in)) != '"');
-	while((c = fgetc(extr_in)) != ' ');
+	fgetc(extr_in);
 
-	//skanowanko wszystkiego do spacji(końca endpointu) lub '?'
-	while((c = fgetc(extr_in)) != ' ' && c != '?'){
-		if(len > buffSize){
-			buffSize += 200;
-			buffor = realloc(buffor, buffSize * sizeof(char));
-			if(buffor == NULL){
-				fprintf(stderr, "Błąd przy powiększaniu bufora\n");
-				MPI_Abort(MPI_COMM_WORLD, 8);
-			}
-		}
-		buffor[len++] = c;
+	char * status = malloc(4 * sizeof(char));
+	if(status == NULL){
+		fprintf(stderr, "Błąd przy alokacj pamięci na status\n");
+		MPI_Abort(MPI_COMM_WORLD, 9);
 	}
+	for(int i= 0; i < 3; i++){
+		status[i] = fgetc(extr_in);
+	}
+	status[3] = '\0';
+		
 	//do nowej lini
         while((c = fgetc(extr_in)) != EOF && c != '\n');
 
-	char * endpoint = malloc((len + 1) * sizeof(char));
-	if(endpoint == NULL){
-		fprintf(stderr, "Błąd przy alokacji pamięci na endpoint\n");
-		MPI_Abort(MPI_COMM_WORLD, 9);
-	}
-	for(int i = 0; i < len; i++)
-		endpoint[i] = buffor[i];
-	endpoint[len] = '\0';
-	return endpoint;
+	return status;
 }
 
 char * extr_time(){

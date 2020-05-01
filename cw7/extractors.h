@@ -25,7 +25,7 @@ void extr_finalize();
 
 char * extr_addr();
 
-char * extr_endpoint();
+char * extr_status();
 
 char * extr_time();
 #endif
