@@ -6,7 +6,7 @@ Program do robienia statystyk plików z logami.
 
 Program tworzy statystyki na 3 sposoby:
 - addr: który adres ip wysłał ile zapytań
-- stat: Ile zapytań było wysłane do którego endpointu
+- stat: Ile razy został zwrócony dany status http
 - time: Ile zapytań było wysyłane w danym czasie(z dokładnością do sekundy)
 
 ## Budowanie i uruchamianie
@@ -25,17 +25,17 @@ mpiexec log_parser.out [opcja] [log]
 ### Przykładowe wywołania
 Zliczanie adresów ip:
 ```bash
-mpiexec log_parser.out stat a2.log
+mpiexec log_parser.out -addr a2.log
 ```
 
-Spradzanie obciążenia endpointów:
+Zliczanie statusów http:
 ```bash
-mpiexec log_parser.out stat a2.log
+mpiexec log_parser.out -stat a2.log
 ```
 
 Sprawdzanie ilości zdarzeń w czasie z dokładnością do sekundy
 ```bash
-mpiexec log_parser.out stat a2.log
+mpiexec log_parser.out -time a2.log
 ```
 ## Wprowadzanie zmian
 
